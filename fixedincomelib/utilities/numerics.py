@@ -95,11 +95,39 @@ class Interpolator1DPCP(Interpolator1D):
         assert self.extrap_method_ == ExtrapMethod.FLAT
 
     def interpolate(self, x: float) -> float:
-        ### TODO
+        axis1 = np.asarray(self.axis1_)
+        values = np.asarray(self.values_)
+
+        # sort values based on axis1
+        idx = np.argsort(axis1)
+        sorted_axis1 = axis1[idx]
+        sorted_values = values[idx]
+
+        # flat extrapolation
+        if x <= sorted_axis1[0]:
+            return sorted_values[0]
+        elif x >= sorted_axis1[-1]:
+            return sorted_values[-1]
+        
+        # linear interpolation
+        for i in range(len(sorted_axis1)-1):
+            x0 = sorted_axis1[i]
+            x1 = sorted_axis1[i+1]
+
+            if x0 <= x < x1:
+                y0 = sorted_values[i]
+                y1 = sorted_values[i+1]
+                if x1==x0:
+                    raise ValueError("Duplicate axis values cause division by zero.")
+                return y0 + (x - x0)/(x1 - x0) * (y1 - y0)
+        raise ValueError("x is out of bounds after extrapolation check.")
         pass
-    
+
     def gradient_wrt_ordinate(self, x : float):
         ### TODO
+        
+
+
         pass
 
     def integrate(self, start_x : float, end_x : float):
