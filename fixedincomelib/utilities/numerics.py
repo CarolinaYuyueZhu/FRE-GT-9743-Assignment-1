@@ -228,8 +228,63 @@ class Interpolator1DPCP(Interpolator1D):
         pass
 
     def gradient_of_integrated_value_wrt_ordinate(self, start_x : float, end_x : float):
-        ### TODO
+        if len(self.axis1_) != len(self.values_):
+            raise ValueError("axis1 and values should have the same length.")
+        if len(self.axis1_) < 2:
+            raise ValueError("you need at least two grid points to integrate.")
+        
+        # if limits are reversed, the integral should change the sign
+        if end_x < start_x:
+            return -self.gradient_of_integrated_value_wrt_ordinate(end_x, start_x)      
+        
+        # sort values based on axis1
+        idx = np.argsort(self.axis1_)
+        sorted_axis1 = self.axis1_[idx]
+        sorted_values = self.values_[idx]
 
+        # create a gradient array initialized to zero
+        g = np.zeros(len(sorted_values))
+        
+        if start_x == end_x:
+            return g
+        
+        # handle the extrapolation on the left side (left extrapolation)
+        if start_x < sorted_axis1[0]:
+            a = start_x
+            b = min(end_x, sorted_axis1[0])
+            if b > a:
+                g[0] +=  (b - a)
+        # handle the extrapolation on the right side (right extrapolation)
+        if end_x > sorted_axis1[-1]:
+            a = max(start_x, sorted_axis1[-1])
+            b = end_x
+            if b > a:
+                g[-1] += (b - a)
+
+        # handle the integration within the grid
+        L = max(start_x, sorted_axis1[0])
+        U = min(end_x, sorted_axis1[-1])
+        if U > L:
+            # find the indices that bracket L and U
+            left_idx = np.searchsorted(sorted_axis1, L, side='right') - 1
+            right_idx = np.searchsorted(sorted_axis1, U, side='left')
+
+            # integrate from L to U
+            x_prev = L
+            g_prev = self.gradient_wrt_ordinate(L)
+            # walk through interior grid knots and add trapezoids
+            for i in range(left_idx + 1, right_idx):
+                x_curr = sorted_axis1[i]
+                g_curr = sorted_values[i]
+                integral += 0.5 * (g_prev + g_curr) * (x_curr - x_prev)
+                # moves forward
+                x_prev = x_curr
+                g_prev = g_curr
+            # handles the final piece [x_prev, U]
+            x_curr = U
+            g_curr = self.gradient_wrt_ordinate(U)
+            g += 0.5 * (g_prev + g_curr) * (x_curr - x_prev)
+        return g
 
 
         pass
