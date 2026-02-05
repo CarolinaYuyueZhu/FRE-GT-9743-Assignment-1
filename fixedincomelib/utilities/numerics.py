@@ -264,6 +264,9 @@ class Interpolator1DPCP(Interpolator1D):
         # handle the integration within the grid
         L = max(start_x, sorted_axis1[0])
         U = min(end_x, sorted_axis1[-1])
+        if U <= L:
+            return g
+        
         if U > L:
             # find the indices that bracket L and U
             left_idx = np.searchsorted(sorted_axis1, L, side='right') - 1
@@ -275,8 +278,8 @@ class Interpolator1DPCP(Interpolator1D):
             # walk through interior grid knots and add trapezoids
             for i in range(left_idx + 1, right_idx):
                 x_curr = sorted_axis1[i]
-                g_curr = sorted_values[i]
-                integral += 0.5 * (g_prev + g_curr) * (x_curr - x_prev)
+                g_curr = self.gradient_wrt_ordinate(x_curr)
+                g += 0.5 * (g_prev + g_curr) * (x_curr - x_prev)
                 # moves forward
                 x_prev = x_curr
                 g_prev = g_curr
@@ -285,7 +288,6 @@ class Interpolator1DPCP(Interpolator1D):
             g_curr = self.gradient_wrt_ordinate(U)
             g += 0.5 * (g_prev + g_curr) * (x_curr - x_prev)
         return g
-
 
         pass
 
